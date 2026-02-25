@@ -1,14 +1,14 @@
-// 汉堡AI - 最终版后端（所有配置焊死）
+// 汉堡AI - 最终版后端（适配Vercel，保留所有插件+豆包对接）
 const express = require('express');
 const cors = require('cors');
 const axios = require('axios');
 const app = express();
 
 // ========== 核心配置（已全部焊死，无需修改） ==========
-// 端口：Render自动分配，本地测试用3000
+// Vercel适配：端口由环境变量自动分配，无需指定
 const PORT = process.env.PORT || 3000;
-// 你的前端地址（后续部署时替换成你的GitHub Pages地址：http://yuwangjie.cn）
-const YOUR_DOMAIN = 'http://yuwangjie.cn';
+// 你的前端地址（允许所有域名跨域，适配Vercel）
+const YOUR_DOMAIN = '*';
 
 // 火山方舟配置（你的最新信息，已焊死）
 const VOLCANO_API_URL = 'https://ark.cn-beijing.volces.com/api/v3/chat/completions';
@@ -135,9 +135,9 @@ async function dispatchPlugin(message) {
   return null;
 }
 
-// ========== 跨域 + 请求配置（公网适配，无需修改） ==========
+// ========== 跨域 + 请求配置（Vercel适配，允许所有跨域） ==========
 app.use(cors({
-  origin: YOUR_DOMAIN,
+  origin: YOUR_DOMAIN, // Vercel适配：允许所有域名
   methods: ['GET', 'POST'],
   allowedHeaders: ['Content-Type'],
   credentials: true
@@ -189,7 +189,7 @@ app.post('/api/chat', async (req, res) => {
   }
 });
 
-// 健康检查接口（部署验证用）
+// 健康检查接口（Vercel部署验证用）
 app.get('/api/health', (req, res) => {
   res.json({ 
     success: true, 
@@ -200,11 +200,25 @@ app.get('/api/health', (req, res) => {
   });
 });
 
-// 启动服务
-app.listen(PORT, '0.0.0.0', () => {
-  console.log(`✅ 汉堡AI后端已启动`);
-  console.log(`✅ AI身份：${AI_NAME}（模型名：${MODEL_TRUTH}）`);
-  console.log(`✅ 模型ID：${MODEL_ID}`);
-  console.log(`✅ 访问地址：http://localhost:${PORT}/api/chat`);
-  console.log(`✅ 健康检查：http://localhost:${PORT}/api/health`);
+// Vercel适配：根路径返回部署成功提示
+app.get('/', (req, res) => {
+  res.send(`
+    <h1>汉堡AI后端部署成功（Vercel）</h1>
+    <p>聊天接口：${req.headers.host}/api/chat</p>
+    <p>健康检查：${req.headers.host}/api/health</p>
+  `);
 });
+
+// Vercel适配：导出app（必须）
+module.exports = app;
+
+// 本地启动（Vercel会自动忽略）
+if (require.main === module) {
+  app.listen(PORT, '0.0.0.0', () => {
+    console.log(`✅ 汉堡AI后端已启动`);
+    console.log(`✅ AI身份：${AI_NAME}（模型名：${MODEL_TRUTH}）`);
+    console.log(`✅ 模型ID：${MODEL_ID}`);
+    console.log(`✅ 访问地址：http://localhost:${PORT}/api/chat`);
+    console.log(`✅ 健康检查：http://localhost:${PORT}/api/health`);
+  });
+}
